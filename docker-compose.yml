@@ -1,0 +1,75 @@
+services:
+  # ------------------------------------------
+  # PostgreSQL Relational Database Service
+  # ------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartvote_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-smartvote_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smartvote_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartvote-net
+
+  # ------------------------------------------
+  # FastAPI Backend Application Service
+  # ------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartvote_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-root}@postgres:5432/${POSTGRES_DB:-smartvote_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-bQJtyhih3if2hHevRj_62-gS1LVFcd4umZz9F_08FIpkil5KqhN3FK7pSjxmNhgD}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smartvote-net
+
+  # ------------------------------------------
+  # Next.js 16 Frontend Web Portal Service
+  # ------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: smartvote_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - smartvote-net
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  smartvote-net:
+    driver: bridge
+

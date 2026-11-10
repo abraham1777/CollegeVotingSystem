@@ -1,0 +1,56 @@
+services:
+  # -----------------------------------------------
+  # FastAPI Python Backend Web Service
+  # -----------------------------------------------
+  - type: web
+    name: smartvote-backend
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartvote-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: ENVIRONMENT
+        value: production
+
+  # -----------------------------------------------
+  # Next.js Frontend Web Portal Service
+  # -----------------------------------------------
+  - type: web
+    name: smartvote-frontend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: smartvote-backend
+          property: host
+
+# -------------------------------------------------
+# Managed PostgreSQL Cloud Database (Free Tier)
+# -------------------------------------------------
+databases:
+  - name: smartvote-db
+    databaseName: smartvote
+    user: postgres
+    plan: free
+    region: oregon
+
