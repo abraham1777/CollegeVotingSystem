@@ -8,8 +8,12 @@ import {
 import { PositionWithResults } from "@/types/results";
 import { extractErrorMessage } from "./utils";
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+export const API_URL = rawApiUrl
+  ? rawApiUrl.startsWith("http://") || rawApiUrl.startsWith("https://")
+    ? rawApiUrl.replace(/\/+$/, "")
+    : `https://${rawApiUrl.replace(/\/+$/, "")}`
+  : "http://127.0.0.1:8000";
 
 export interface CreateElectionInput {
   title: string;

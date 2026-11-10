@@ -50,7 +50,7 @@ services:
 databases:
   - name: smartvote-db
     databaseName: smartvote
-    user: postgres
+    user: smartvote_user
     plan: free
     region: oregon
 
